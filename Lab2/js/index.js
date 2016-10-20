@@ -15,14 +15,17 @@ function Placemark(id, latitude, longitude, balloonContent, visibility) {
   this.draggable = true;
   this.isVisible = visibility;
 
-  this.CreateYandexPlacemark = function () {
+  this.CreateYandexPlacemark = function (addHtml) {
     var placemark = new ymaps.Placemark([this.latitude, this.longitude],
       { name: this.id,
         balloonContent: this.balloonContent },
       { draggable: this.draggable,
         visible: this.isVisible });
 
-    this.addHtmlElements(this.balloonContent, this.isVisible);
+    if (addHtml) {
+      this.addHtmlElements(this.balloonContent, this.isVisible);
+    }
+
     return placemark;
   }
 
@@ -111,14 +114,16 @@ function Placemark(id, latitude, longitude, balloonContent, visibility) {
   }
 
   this.setVisibility = function(visible) {
-    placemarkArray.geoObjectsCollection.each(function(point) {
+    placemarkArray.geoObjectsCollection.each(function(point, i) {
       var coords = point.geometry.getCoordinates();
       if (latitude == coords[0] && longitude == coords[1]) {
         if (visible) {
-          this.isVisible = true;
+          placemarkArray.m_array[i].isVisible = true;
+          //this.isVisible = true;
           point.options.set('visible', true);
         } else {
-          this.isVisible = false;
+          placemarkArray.m_array[i].isVisible = false;
+          //this.isVisible = false;
           point.options.set('visible', false);
         }
       }
@@ -127,23 +132,27 @@ function Placemark(id, latitude, longitude, balloonContent, visibility) {
 }
 
 function Circle(latitude, longitude, radius, visibility) {
+  this.type = 'circle';
   this.latitude = latitude;
   this.longitude = longitude;
   this.radius = radius;
   this.isVisible = visibility;
   this.draggable = false;
-  this.geoCircle = new ymaps.Circle([[this.latitude, this.longitude], this.radius], null, { draggable: this.draggable });
+  this.geoCircle = null;
 
   this.addCircleToMap = function() {
-    //this.geoCircle = new ymaps.Circle([[this.latitude, this.longitude], this.radius], null, { this.draggable });
+    this.geoCircle = new ymaps.Circle([[this.latitude, this.longitude], this.radius], null, { draggable: this.draggable });
     myMap.geoObjects.add(this.geoCircle);
   }
 
   this.displayRadius = function() {
+    //var data = JSON.stringify(this, ["type", "latitude", "longitude", "radius", "isVisible", "draggable"]);
+    //console.log(data);
     placemarkArray.m_array.forEach(function(item, i) {
-      var coords = item.CreateYandexPlacemark().geometry.getCoordinates();
+      var coords = item.CreateYandexPlacemark(false).geometry.getCoordinates();
       if (!isRaduisMoreThanDistance(latitude, longitude, radius, coords[0], coords[1])) {
         item.setVisibility(false);
+        console.log(JSON.stringify(item));
       }
     });
   }
@@ -181,7 +190,7 @@ function PlacemarkArray() {
     $("#placemarkList").empty();
     this.geoObjectsCollection.removeAll();
     for (var i = 0; i < this.m_array.length; ++i) {
-        this.geoObjectsCollection.add(this.m_array[i].CreateYandexPlacemark(), i);
+        this.geoObjectsCollection.add(this.m_array[i].CreateYandexPlacemark(true), i);
     }
     myMap.geoObjects.add(this.geoObjectsCollection);
   }
@@ -202,6 +211,9 @@ function PlacemarkArray() {
       console.log(data);
       localStorage.setItem(item.id + '', data);
     });
+
+    var data = JSON.stringify(circle, ["type", "latitude", "longitude", "radius", "isVisible", "draggable"]);
+    localStorage.setItem(this.m_array.length, data);
   }
 
   this.loadFromStorage = function() {
@@ -209,9 +221,22 @@ function PlacemarkArray() {
     console.log("Считано данных из памяти: " + storageLength);
     for (var i = 0; i < storageLength; ++i) {
       var data = JSON.parse(localStorage.getItem(i + ''));
+      if (data.type) {
+        if (data.type == "circle") {
+          visibleCircle = true;
+          circle = new Circle(data.latitude, data.longitude, data.radius, true);
+          circle.addCircleToMap();
+          circle.displayRadius();
+        } else {
+          this.m_array.push(new Placemark(
+            i, data.latitude, data.longitude, data.balloonContent, data.isVisible));
+        }
+      } else {
+        this.m_array.push(new Placemark(
+          i, data.latitude, data.longitude, data.balloonContent, data.isVisible));
+      }
+
       console.log(data.id);
-      this.m_array.push(new Placemark(
-        i, data.latitude, data.longitude, data.balloonContent, data.isVisible));
     }
     placemarkArray.loadToMap();
   }
@@ -222,31 +247,6 @@ function PlacemarkArray() {
       var $section = item.addHtmlElements(item.balloonContent);
       $section.appendTo($(".placemarkList"));
     });
-  }
-
-  this.displayRadius = function(radius) {
-    var currentPosition,
-        myCircle;
-
-    if (visibleCircle) {
-      visibleCircle = !visibleCircle;
-      myMap.geoObjects.removeAll();
-      placemarkArray.loadToMap();
-    } else {
-      visibleCircle = !visibleCircle;
-      ymaps.geolocation.get().then(function (result) {
-        currentPosition = result.geoObjects.position;
-        myCircle = new ymaps.Circle([currentPosition, radius], null, { draggable: false });
-        myMap.geoObjects.add(myCircle);
-        placemarkArray.hidePlacemarks();
-        for (var i = 0; i < placemarkArray.m_array.length; ++i) {
-          var coords = placemarkArray.m_array[i].CreateYandexPlacemark().geometry.getCoordinates();
-          if (isRaduisMoreThanDistance(currentPosition[0], currentPosition[1], radius, coords[0], coords[1])) {
-            myMap.geoObjects.add(placemarkArray.m_array[i].CreateYandexPlacemark());
-          }
-        }
-      });
-    }
   }
 }
 
@@ -267,11 +267,6 @@ function isRaduisMoreThanDistance(lat0, lon0, r, lat1, lon1) {
     Math.cos(lon0 - lon1) + Math.sin(lat0) * Math.sin(lat1)));
 }
 
-function closePlacemarkDescription() {
-  var placemark = placemarkArray.getElementByCondition(isSameCoords);
-  placemark.closePlacemarkDescription();
-}
-
 function currentPosition() {
   currentPositionBtn = true;
   ymaps.geolocation.get({
@@ -284,18 +279,6 @@ function currentPosition() {
   });
 }
 
-// function ternarHide() {
-//   console.log("скрыли маркеры");
-//   placemarkArray.hidePlacemarks();
-//   return !isVisible;
-// }
-//
-// function ternarShow() {
-//   console.log("показали маркеры");
-//   placemarkArray.showPlacemarks();
-//   return !isVisible;
-// }
-
 function displayPLacemarksInArea() {
   if (visibleCircle) {
     visibleCircle = !visibleCircle;
@@ -305,7 +288,6 @@ function displayPLacemarksInArea() {
     placemarkArray.m_array.forEach(function(item) {
       item.setVisibility(true);
     });
-    //placemarkArray.loadToMap();
   } else {
     var radius = $('.radius').val();
     console.log(radius);
@@ -317,7 +299,6 @@ function displayPLacemarksInArea() {
       visibleCircle = !visibleCircle;
       circle.displayRadius();
     });
-    //placemarkArray.displayRadius(radius);
   }
 }
 
