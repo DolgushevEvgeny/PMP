@@ -6,21 +6,22 @@ var myMap,
 
 ymaps.ready(init);
 
-function Placemark(id, latitude, longitude, balloonContent) {
+function Placemark(id, latitude, longitude, balloonContent, visibility) {
   this.id = id;
   this.latitude = latitude;
   this.longitude = longitude;
   this.balloonContent = balloonContent;
   this.draggable = true;
-  this.isVisible = true;
+  this.isVisible = visibility;
 
   this.CreateYandexPlacemark = function () {
     var placemark = new ymaps.Placemark([this.latitude, this.longitude],
       { name: this.id,
         balloonContent: this.balloonContent },
-      { draggable: this.draggable});
+      { draggable: this.draggable,
+        visible: this.isVisible });
 
-    this.addHtmlElements(this.balloonContent);
+    this.addHtmlElements(this.balloonContent, this.isVisible);
     return placemark;
   }
 
@@ -34,7 +35,7 @@ function Placemark(id, latitude, longitude, balloonContent) {
     placemarkArray.loadToMap();
   }
 
-  this.addHtmlElements = function(text) {
+  this.addHtmlElements = function(text, visibility) {
     var buttonDlt = document.createElement('button');
     buttonDlt.innerHTML = "Удалить метку";
     buttonDlt.className = "btn btn-primary form-control";
@@ -68,7 +69,7 @@ function Placemark(id, latitude, longitude, balloonContent) {
     };
 
     var buttonVsbl = document.createElement('button');
-    buttonVsbl.innerHTML = "Скрыть";
+    buttonVsbl.innerHTML = visibility ? "Скрыть" : "Показать";
     buttonVsbl.className = "btn btn-primary form-control";
     buttonVsbl.onclick = function() {
       var visible;
@@ -171,7 +172,7 @@ function PlacemarkArray() {
       var data = JSON.parse(localStorage.getItem(i + ''));
       console.log(data.id);
       this.m_array.push(new Placemark(
-        i, data.latitude, data.longitude, data.balloonContent));
+        i, data.latitude, data.longitude, data.balloonContent, data.isVisible));
     }
     placemarkArray.loadToMap();
   }
@@ -289,7 +290,7 @@ function init() {
         console.log("Индекс маркера: " + placemarkArray.m_array[length-1].id+1);
       }
       placemarkArray.addPlacemark(new Placemark(id, coords[0], coords[1],
-        firstGeoObject.properties.get('name')));
+        firstGeoObject.properties.get('name'), true));
     });
   });
 }
@@ -314,7 +315,7 @@ window.onload = function() {
         list = JSON.parse(evt.target.result);
         list.forEach(function(item, i){
           var placemark = new Placemark(placemarkArray.m_array[placemarkArray.m_array.length-1].id+1,
-             item.coordinates.latitude, item.coordinates.longitude, item.name);
+             item.coordinates.latitude, item.coordinates.longitude, item.name, item.isVisible);
           tempList.push(placemark);
           placemarkArray.addPlacemark(placemark);
         });
