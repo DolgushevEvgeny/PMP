@@ -1,5 +1,6 @@
 var myMap,
     placemarkArray,
+    circle,
     currentCoordinates,
     currentPositionBtn = false,
     visibleCircle = false;
@@ -107,6 +108,44 @@ function Placemark(id, latitude, longitude, balloonContent, visibility) {
     section.appendChild(buttonDlt);
     var listTest = document.getElementById('placemarkList');
     listTest.appendChild(section);
+  }
+
+  this.setVisibility = function(visible) {
+    placemarkArray.geoObjectsCollection.each(function(point) {
+      var coords = point.geometry.getCoordinates();
+      if (latitude == coords[0] && longitude == coords[1]) {
+        if (visible) {
+          this.isVisible = true;
+          point.options.set('visible', true);
+        } else {
+          this.isVisible = false;
+          point.options.set('visible', false);
+        }
+      }
+    });
+  }
+}
+
+function Circle(latitude, longitude, radius, visibility) {
+  this.latitude = latitude;
+  this.longitude = longitude;
+  this.radius = radius;
+  this.isVisible = visibility;
+  this.draggable = false;
+  this.geoCircle = new ymaps.Circle([[this.latitude, this.longitude], this.radius], null, { draggable: this.draggable });
+
+  this.addCircleToMap = function() {
+    //this.geoCircle = new ymaps.Circle([[this.latitude, this.longitude], this.radius], null, { this.draggable });
+    myMap.geoObjects.add(this.geoCircle);
+  }
+
+  this.displayRadius = function() {
+    placemarkArray.m_array.forEach(function(item, i) {
+      var coords = item.CreateYandexPlacemark().geometry.getCoordinates();
+      if (!isRaduisMoreThanDistance(latitude, longitude, radius, coords[0], coords[1])) {
+        item.setVisibility(false);
+      }
+    });
   }
 }
 
@@ -245,22 +284,41 @@ function currentPosition() {
   });
 }
 
-function ternarHide() {
-  console.log("скрыли маркеры");
-  placemarkArray.hidePlacemarks();
-  return !isVisible;
-}
-
-function ternarShow() {
-  console.log("показали маркеры");
-  placemarkArray.showPlacemarks();
-  return !isVisible;
-}
+// function ternarHide() {
+//   console.log("скрыли маркеры");
+//   placemarkArray.hidePlacemarks();
+//   return !isVisible;
+// }
+//
+// function ternarShow() {
+//   console.log("показали маркеры");
+//   placemarkArray.showPlacemarks();
+//   return !isVisible;
+// }
 
 function displayPLacemarksInArea() {
-  var radius = $('.radius').val();
-  console.log(radius);
-  placemarkArray.displayRadius(radius);
+  if (visibleCircle) {
+    visibleCircle = !visibleCircle;
+    myMap.geoObjects.remove(circle.geoCircle);
+    circle = null;
+
+    placemarkArray.m_array.forEach(function(item) {
+      item.setVisibility(true);
+    });
+    //placemarkArray.loadToMap();
+  } else {
+    var radius = $('.radius').val();
+    console.log(radius);
+
+    ymaps.geolocation.get().then(function (result) {
+      currentPosition = result.geoObjects.position;
+      circle = new Circle(currentPosition[0], currentPosition[1], radius, true);
+      circle.addCircleToMap();
+      visibleCircle = !visibleCircle;
+      circle.displayRadius();
+    });
+    //placemarkArray.displayRadius(radius);
+  }
 }
 
 function isSameCoords(currentLatitude, currentLongitude, latitude, longitude) {
