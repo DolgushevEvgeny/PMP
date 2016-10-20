@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Лабораторная работа 2</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="css/style.css"/>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&subset=cyrillic-ext" rel="stylesheet"/>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+    <style media="screen">
+      #holder {
+        width: 300px;
+        height: 300px;
+      }
+
+      h1 {
+        margin-left: 30px;
+      }
+    </style>
+  </head>
+  </body>
+    <header>
+      <h1>Работа с Yandex API, File API, Web Storage</h1>
+    </header>
+    <main>
+      <section class="container">
+        <section class="row">
+          <section class="col-md-4">
+              <section class="row">
+                <section class="col-md-12 controls">
+                  <button type="button" class="btn btn-primary form-control" onclick="сurrentPosition()">Текущее местоположение</button>
+                  <section>
+                    <button type="button" class="btn btn-primary form-control" onclick="displayPLacemarksInArea()">Отобразить геометки в радиусе</button>
+                    <input type="number" class="form-control radius" min="50" max="9999" step="10" value="10"/>
+                  </section>
+                </section>
+              </section>
+              <section class="row">
+                <section class="col-md-12" id="placemarkList">
+                </section>
+              </section>
+          </section>
+          <section class="col-md-8 map" >
+            <section class="holder" id="map" style="height: 400px"></section>
+          </section>
+        </section>
+      </section>
+    </main>
+    <script src="js/index.js"></script>
+  </body>
+</html>
