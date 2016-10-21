@@ -146,8 +146,6 @@ function Circle(latitude, longitude, radius, visibility) {
   }
 
   this.displayRadius = function() {
-    //var data = JSON.stringify(this, ["type", "latitude", "longitude", "radius", "isVisible", "draggable"]);
-    //console.log(data);
     placemarkArray.m_array.forEach(function(item, i) {
       var coords = item.CreateYandexPlacemark(false).geometry.getCoordinates();
       if (!isRaduisMoreThanDistance(latitude, longitude, radius, coords[0], coords[1])) {
@@ -212,8 +210,10 @@ function PlacemarkArray() {
       localStorage.setItem(item.id + '', data);
     });
 
-    var data = JSON.stringify(circle, ["type", "latitude", "longitude", "radius", "isVisible", "draggable"]);
-    localStorage.setItem(this.m_array.length, data);
+    if (circle) {
+      var data = JSON.stringify(circle, ["type", "latitude", "longitude", "radius", "isVisible", "draggable"]);
+      localStorage.setItem(this.m_array.length, data);
+    }
   }
 
   this.loadFromStorage = function() {
@@ -244,8 +244,7 @@ function PlacemarkArray() {
   this.addHtmlElements = function() {
     $("#placemarkList").empty();
     this.m_array.forEach(function(item, i) {
-      var $section = item.addHtmlElements(item.balloonContent);
-      $section.appendTo($(".placemarkList"));
+      item.addHtmlElements(item.balloonContent, item.isVisible);
     });
   }
 }
@@ -288,6 +287,7 @@ function displayPLacemarksInArea() {
     placemarkArray.m_array.forEach(function(item) {
       item.setVisibility(true);
     });
+    placemarkArray.addHtmlElements();
   } else {
     var radius = $('.radius').val();
     console.log(radius);
@@ -298,6 +298,7 @@ function displayPLacemarksInArea() {
       circle.addCircleToMap();
       visibleCircle = !visibleCircle;
       circle.displayRadius();
+      placemarkArray.addHtmlElements();
     });
   }
 }
@@ -347,16 +348,28 @@ window.onload = function() {
     var list,
         reader;
     if (file) {
-      var tempList = [];
+      var tempList = [],
+          isOnMap = false;
       console.log("Есть ссылка на файл");
       reader = new FileReader();
       reader.onload = function (evt) {
         list = JSON.parse(evt.target.result);
         list.forEach(function(item, i){
-          var placemark = new Placemark(placemarkArray.m_array[placemarkArray.m_array.length-1].id+1,
+          var id = placemarkArray.m_array.length ? placemarkArray.m_array[placemarkArray.m_array.length-1].id+1 : 0;
+          var placemark = new Placemark(id,
              item.coordinates.latitude, item.coordinates.longitude, item.name, item.isVisible);
-          tempList.push(placemark);
-          placemarkArray.addPlacemark(placemark);
+
+          placemarkArray.m_array.forEach(function(item, i) {
+            if (isSameCoords(placemark.latitude, placemark.longitude, item.latitude, item.longitude)) {
+              isOnMap = true;
+              console.log("такая метка уже есть");
+            }
+          });
+          if (!isOnMap) {
+            tempList.push(placemark);
+            placemarkArray.addPlacemark(placemark);
+          }
+          isOnMap = false;
         });
         placemarkArray.showPlacemarks();
       }
