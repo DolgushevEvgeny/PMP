@@ -1,6 +1,7 @@
 var myMap,
     placemarkArray,
     circle,
+    myPosition,
     currentCoordinates,
     currentPositionBtn = false,
     visibleCircle = false;
@@ -8,6 +9,7 @@ var myMap,
 ymaps.ready(init);
 
 function Placemark(id, latitude, longitude, balloonContent, visibility) {
+  this.type = 'placemark';
   this.id = id;
   this.latitude = latitude;
   this.longitude = longitude;
@@ -119,16 +121,34 @@ function Placemark(id, latitude, longitude, balloonContent, visibility) {
       if (latitude == coords[0] && longitude == coords[1]) {
         if (visible) {
           placemarkArray.m_array[i].isVisible = true;
-          //this.isVisible = true;
           point.options.set('visible', true);
         } else {
           placemarkArray.m_array[i].isVisible = false;
-          //this.isVisible = false;
           point.options.set('visible', false);
         }
       }
     });
   }
+}
+
+function CurrentPosition() {
+  this.type = 'position';
+  this.geoCurrentPosition = null;
+
+  this.addCurrentPositionToMap = function() {
+    var geoObject = null;
+    ymaps.geolocation.get({
+      provider: 'yandex',
+      mapStateAutoApply: true
+      }).then(function (result) {
+        saveInstance(result);
+      });
+  }
+}
+
+function saveInstance(result) {
+  myPosition.geoCurrentPosition = result.geoObjects;
+  myMap.geoObjects.add(myPosition.geoCurrentPosition);
 }
 
 function Circle(latitude, longitude, radius, visibility) {
@@ -150,7 +170,7 @@ function Circle(latitude, longitude, radius, visibility) {
       var coords = item.CreateYandexPlacemark(false).geometry.getCoordinates();
       if (!isRaduisMoreThanDistance(latitude, longitude, radius, coords[0], coords[1])) {
         item.setVisibility(false);
-        console.log(JSON.stringify(item));
+        //console.log(JSON.stringify(item));
       }
     });
   }
@@ -206,13 +226,23 @@ function PlacemarkArray() {
 
     this.m_array.forEach(function(item, i) {
       var data = JSON.stringify(item);
-      console.log(data);
+      //console.log(data);
       localStorage.setItem(item.id + '', data);
     });
 
+    var indexToSave = 0;
     if (circle) {
       var data = JSON.stringify(circle, ["type", "latitude", "longitude", "radius", "isVisible", "draggable"]);
+      //console.log(data);
       localStorage.setItem(this.m_array.length, data);
+      indexToSave = this.m_array.length + 1;
+    }
+
+    if (myPosition) {
+      //console.log(indexToSave);
+      var data = JSON.stringify(myPosition, ["type"]);
+      //console.log(data);
+      localStorage.setItem(indexToSave, data);
     }
   }
 
@@ -221,22 +251,25 @@ function PlacemarkArray() {
     console.log("Считано данных из памяти: " + storageLength);
     for (var i = 0; i < storageLength; ++i) {
       var data = JSON.parse(localStorage.getItem(i + ''));
-      if (data.type) {
+      if (data) {
         if (data.type == "circle") {
           visibleCircle = true;
           circle = new Circle(data.latitude, data.longitude, data.radius, true);
           circle.addCircleToMap();
           circle.displayRadius();
         } else {
-          this.m_array.push(new Placemark(
-            i, data.latitude, data.longitude, data.balloonContent, data.isVisible));
+          if (data.type == "position") {
+            currentPositionBtn = true;
+            myPosition = new CurrentPosition();
+            myPosition.addCurrentPositionToMap();
+          } else {
+            if (data.type == "placemark") {
+              this.m_array.push(new Placemark(
+                i, data.latitude, data.longitude, data.balloonContent, data.isVisible));
+            }
+          }
         }
-      } else {
-        this.m_array.push(new Placemark(
-          i, data.latitude, data.longitude, data.balloonContent, data.isVisible));
       }
-
-      console.log(data.id);
     }
     placemarkArray.loadToMap();
   }
@@ -267,15 +300,15 @@ function isRaduisMoreThanDistance(lat0, lon0, r, lat1, lon1) {
 }
 
 function currentPosition() {
-  currentPositionBtn = true;
-  ymaps.geolocation.get({
-    // Выставляем опцию для определения положения по ip
-    provider: 'yandex',
-    // Карта автоматически отцентрируется по положению пользователя.
-    mapStateAutoApply: true
-  }).then(function (result) {
-      myMap.geoObjects.add(result.geoObjects);
-  });
+  if (currentPositionBtn) {
+    currentPositionBtn = false;
+    myMap.geoObjects.remove(myPosition.geoCurrentPosition);
+    myPosition = null;
+  } else {
+    currentPositionBtn = true;
+    myPosition = new CurrentPosition();
+    myPosition.addCurrentPositionToMap();
+  }
 }
 
 function displayPLacemarksInArea() {
@@ -290,7 +323,6 @@ function displayPLacemarksInArea() {
     placemarkArray.addHtmlElements();
   } else {
     var radius = $('.radius').val();
-    console.log(radius);
 
     ymaps.geolocation.get().then(function (result) {
       currentPosition = result.geoObjects.position;
