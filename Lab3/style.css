@@ -1,0 +1,8 @@
+.help {
+    float: left;
+    text-align: center;
+}
+
+#pieChart {
+    border:1px solid #e4e4e4;
+}
