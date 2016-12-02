@@ -29,8 +29,8 @@ function FillData() {
     }
 
     AddColors();
-    setInterval("DrawPieChart()", 20);
-    setInterval("IncreaseShift()", 20);
+    requestAnimationFrame(DrawPieChart);
+    requestAnimationFrame(IncreaseShift);
 }
 
 function GetRandomColor() {
@@ -102,6 +102,7 @@ function DrawPieChart() {
         var angle = carsCount[i] / totalCars * 360;
         var newAngle = initialAngle + angle;
 
+        //var gradient = context.createLinearGradient(centerX, centerY + 1, 0, 160, , radius);
         context.DrawSector(centerX, centerY + 1, 160, radius, degreesToRadians(initialAngle), degreesToRadians(newAngle));
         context.fillStyle = colors[i];
         if (CheckColorInArray(i)) {
@@ -112,6 +113,8 @@ function DrawPieChart() {
         context.fill();
         initialAngle += angle;
     }
+
+    requestAnimationFrame(DrawPieChart);
 }
 
 function CheckColorInArray(i) {
@@ -131,6 +134,8 @@ function IncreaseShift() {
     if (autoRotation) {
         angleShift += 5;
     }
+
+    requestAnimationFrame(IncreaseShift);
 }
 
 function degreesToRadians(degrees) {
