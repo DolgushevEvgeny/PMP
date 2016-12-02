@@ -20,7 +20,7 @@ CanvasRenderingContext2D.prototype.DrawSector = function (x, y, radiusA, radiusB
     this.arc(0, 0, radiusB, angleFrom, angleTo, false);
     this.restore();
     this.closePath();
-}
+};
 
 function FillData() {
     for (var i = 0; i < carsCount.length; ++i) {
@@ -102,7 +102,6 @@ function DrawPieChart() {
         var angle = carsCount[i] / totalCars * 360;
         var newAngle = initialAngle + angle;
 
-        //var gradient = context.createLinearGradient(centerX, centerY + 1, 0, 160, , radius);
         context.DrawSector(centerX, centerY + 1, 160, radius, degreesToRadians(initialAngle), degreesToRadians(newAngle));
         context.fillStyle = colors[i];
         if (CheckColorInArray(i)) {
@@ -144,16 +143,28 @@ function degreesToRadians(degrees) {
 
 function ShowHelp(message, color) {
     var canvas = document.getElementById("help");
-    canvas.height = 50;
-    canvas.width = 150;
+    canvas.height = 100;
+    canvas.width = 300;
     var ctx = canvas.getContext("2d");
 
-    ctx.shadowColor = color;
-    ctx.fillStyle = color;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeRect(0,0, canvas.width, canvas.height);
-    ctx.font = "italic 12pt Arial";
-    ctx.strokeText(message, 10, 25);
+    ctx.rect(0,0, canvas.width, canvas.height);
+    var gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(1/7, '#FF0000');
+    gradient.addColorStop(2/7, '#FF7F00');
+    gradient.addColorStop(3/7, '#FFFF00');
+    gradient.addColorStop(4/7, '#00FF00');
+    gradient.addColorStop(5/7, '#0000FF');
+    gradient.addColorStop(6/7, '#4B0082');
+    gradient.addColorStop(7/7, '#8F00FF');
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.shadowColor = "black";
+    ctx.shadowBlur = 5.0;
+    ctx.shadowOffsetX = 3.0;
+    ctx.shadowOffsetY = 3.0;
+    ctx.font = "italic 32pt Arial";
+    ctx.fillText(message, 10, 50);
 }
 
 function HelpClear() {
